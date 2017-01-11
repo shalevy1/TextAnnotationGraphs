@@ -207,34 +207,50 @@ class GraphLayout {
                     d.fy += d3.event.dy;                        
                 }
                 else {
-                    // get distance to source/target
-                    var nsDx = d.link.source.x - d.x,
-                        nsDy = d.link.source.y - d.y,
-                        ntDx = d.link.target.x - d.x,
-                        ntDy = d.link.target.y - d.y,
+                    var source = d.link.source,
+                        target = d.link.target;
 
-                        esDx = d.link.source.x - d3.event.x,
-                        esDy = d.link.source.y - d3.event.y,
-                        etDx = d.link.target.x - d3.event.x,
-                        etDy = d.link.target.y - d3.event.y;
+                    var dx = target.x - source.x,
+                        dy = target.y - source.y;
 
-                    var nodeDistanceToSource = nsDx*nsDx + nsDy*nsDy,
-                        nodeDistanceToTarget = ntDx*ntDx + ntDy*ntDy,
-                        dragDistanceToSource = esDx*esDx + esDy*esDy,
-                        dragDistanceToTarget = etDx*etDx + etDy*etDy;
+                    var horizontal = Math.abs(dy/dx) < 1;
 
-                    var direction = 0;
-                    if (dragDistanceToSource < nodeDistanceToSource) {
-                        direction = -0.01;
-                    }
-                    else if (dragDistanceToTarget < nodeDistanceToTarget) {
-                        direction = 0.01;
-                    }
-                    else {
-                        direction = dragDistanceToSource<dragDistanceToTarget ?
-                            -0.01 : 0.01;
-                    }
-                    d.t = Math.max(Math.min(d.t + direction, 0.9), 0.1);
+                    var t = (horizontal) ? 
+                        (d3.event.x - source.x)/dx :
+                        (d3.event.y - source.y)/dy;
+
+                    d.t = Math.max(Math.min(0.9, t), 0.1);
+
+                    // console.log(ddy, ddx, dr);
+
+                    // // get distance to source/target
+                    // var nsDx = d.link.source.x - d.x,
+                    //     nsDy = d.link.source.y - d.y,
+                    //     ntDx = d.link.target.x - d.x,
+                    //     ntDy = d.link.target.y - d.y,
+
+                    //     esDx = d.link.source.x - d3.event.x,
+                    //     esDy = d.link.source.y - d3.event.y,
+                    //     etDx = d.link.target.x - d3.event.x,
+                    //     etDy = d.link.target.y - d3.event.y;
+
+                    // var nodeDistanceToSource = nsDx*nsDx + nsDy*nsDy,
+                    //     nodeDistanceToTarget = ntDx*ntDx + ntDy*ntDy,
+                    //     dragDistanceToSource = esDx*esDx + esDy*esDy,
+                    //     dragDistanceToTarget = etDx*etDx + etDy*etDy;
+
+                    // var direction = 0;
+                    // if (dragDistanceToSource < nodeDistanceToSource) {
+                    //     direction = -0.01;
+                    // }
+                    // else if (dragDistanceToTarget < nodeDistanceToTarget) {
+                    //     direction = 0.01;
+                    // }
+                    // else {
+                    //     direction = dragDistanceToSource<dragDistanceToTarget ?
+                    //         -0.01 : 0.01;
+                    // }
+                    // d.t = Math.max(Math.min(d.t + direction, 0.9), 0.1);
                 }
             })
             .on('end', (d) => {
@@ -364,23 +380,26 @@ class GraphLayout {
                         dy = target.y - source.y,
                         dr = Math.sqrt( dx * dx + dy * dy);
 
-                    if (dr === 0) { 
-                        d.fx = target.x,
-                        d.fy = target.y;
-                        return d; 
-                    }
+                    d.fx = source.x + dx*d.t,
+                    d.fy = source.y + dy*d.t;
 
-                    var sin60 = Math.sqrt(3)/2;
-                    var cx = source.x + dx * 0.5 - dy * sin60,
-                        cy = source.y + dy * 0.5 + dx * sin60;
+                    // if (dr === 0) { 
+                    //     d.fx = target.x,
+                    //     d.fy = target.y;
+                    //     return d; 
+                    // }
 
-                    var acos = Math.acos( (source.x - cx)/dr ),
-                        asin = Math.asin( (source.y - cy)/dr );
+                    // var sin60 = Math.sqrt(3)/2;
+                    // var cx = source.x + dx * 0.5 - dy * sin60,
+                    //     cy = source.y + dy * 0.5 + dx * sin60;
 
-                    var theta = (asin < 0) ? -acos : acos;
+                    // var acos = Math.acos( (source.x - cx)/dr ),
+                    //     asin = Math.asin( (source.y - cy)/dr );
 
-                    d.fx = cx + dr*Math.cos(theta + Math.PI/3 * d.t),
-                    d.fy = cy + dr*Math.sin(theta + Math.PI/3 * d.t);
+                    // var theta = (asin < 0) ? -acos : acos;
+
+                    // d.fx = cx + dr*Math.cos(theta + Math.PI/3 * d.t),
+                    // d.fy = cy + dr*Math.sin(theta + Math.PI/3 * d.t);
                 }
                 else {
                     d.x = clampX(d.x);
@@ -404,12 +423,9 @@ class GraphLayout {
                 dy = target.y - source.y,
                 dr = Math.sqrt( dx * dx + dy * dy);
 
-            // if (target.role === "link-anchor" || source.role === "link-anchor") {
-            //     dr /= 2;
-            // }
-
             return  "M" + source.x + "," + source.y +
-                "A" + dr + "," + dr + " 0 0,1 " +
+                // "A" + dr*2 + "," + dr*2 + " 0 0,1 " +    // arc
+                "L"+                                    // line
                 target.x + "," + target.y;
           }
         }
