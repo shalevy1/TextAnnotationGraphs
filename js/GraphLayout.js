@@ -141,7 +141,7 @@ class GraphLayout {
         }
 
         // identify anchors (endpoints of links): can be words or other links
-        function getAnchorPoint(node) {
+        function getAnchorPoint(node, link) {
             if (d[node.id]) {
                 if (d[node.id].role === "word") {
                     return d[node.id];
@@ -152,7 +152,8 @@ class GraphLayout {
                         id: node.id,
                         data: node,
                         role: "link-anchor",
-                        link: d[node.id]
+                        link: d[node.id],
+                        link2: link
                     };
                     linkAnchor.link.stops.push(linkAnchor); // circular ref
                     a.push(linkAnchor);
@@ -175,8 +176,8 @@ class GraphLayout {
             var s = link.data.s,
                 e = link.data.e;
 
-            link.source = getAnchorPoint(s);
-            link.target = getAnchorPoint(e);
+            link.source = getAnchorPoint(s, link);
+            link.target = getAnchorPoint(e, link);
         });
 
         // evenly space stops on initialization
@@ -292,16 +293,21 @@ class GraphLayout {
         nodeGroup
             .classed('node-word', d => d.role === 'word')
             .on('mouseover', (d) => {
-                function mouseoverWord(word) {
-                    // TODO: link back to word in "drawing" svg
-
+                if (d.data.type === "WORD") { 
+                    mover( d.data ); 
                 }
-                if (d.role === "word") { mouseoverWord( d.data ); }
-                console.log('moused over',d)
+                else if (d.data.type === "LINK") {
+                    link_mover( d.link.data );
+                    link_mover( d.link2.data );
+                }
             })
             .on('mouseout', (d) => {
-                function mouseoutWord(word) {
-
+                if (d.data.type === "WORD") { 
+                    mout( d.data ); 
+                }
+                else if (d.data.type === "LINK") {
+                    link_mout( d.link.data );
+                    link_mout( d.link2.data );
                 }
             })
             .call(drag);
