@@ -34,13 +34,29 @@ class GraphLayout {
 
         // force simulation
         this.simulation = d3.forceSimulation()
-            .force('link', d3.forceLink().id(d => d.id))
+            .force('link', d3.forceLink()
+                .id(d => d.id)
+                .distance(80)
+                // .strength(d => {
+                //     function count(l, n) {
+                //         return (l.target === n || l.source === n);
+                //     }
+                //     var strength = 1 / (Math.min(
+                //       this.data.links.filter(l => count(l, d.target)).length, 
+                //       this.data.links.filter(l => count(l, d.source)).length 
+                //       ) + 1);
+
+                //     if (d.source.role === 'link-anchor') strength /= 2;
+                //     if (d.target.role === 'link-anchor') strength /= 2;
+                //     return strength;
+                // })
+            )
             .force('collision', d3.forceCollide(d => {
                 return d.role === "link-anchor" ? 0 : 20;
             }))
             .force('charge', d3.forceManyBody()
-                .strength(d => d.role === "link-anchor" ? 0 : -30)
-                .distanceMax(100)
+                .strength(d => d.role === "link-anchor" ? 0 : -100)
+                // .distanceMax(100)
             )
             .force('center', d3.forceCenter( 0,0 ));
     }
@@ -185,6 +201,12 @@ class GraphLayout {
             var tmax = link.stops.length + 1;
             link.stops.forEach((stop,i) => {
                 stop.t = (i + 1)/tmax;
+
+                // add another hidden link???
+                // l.push(
+                //     { source: link.source, target: stop, hidden: true, role: "spring" },
+                //     { source: link.target, target: stop, hidden: true, role: "spring" }
+                // );
             })
         })
     }//end generateData()
@@ -199,66 +221,42 @@ class GraphLayout {
                 if (!d3.event.active) {
                     sim.alphaTarget(0.3).restart();
                 }
+                d.isDragging = true;
                 d.fx = d.x,
                 d.fy = d.y;
-            })
-            .on('drag', function(d) {
-                if (d.role !== "link-anchor") {
-                    d.fx += d3.event.dx,
-                    d.fy += d3.event.dy;                        
+                if (d.role === 'link-anchor') {
+                    d.link.cp = d;
                 }
-                else {
-                    var source = d.link.source,
-                        target = d.link.target;
+            })
+            .on('drag', (d) => {
+                d.fx = d3.event.x,
+                d.fy = d3.event.y;
 
-                    var dx = target.x - source.x,
-                        dy = target.y - source.y;
+                if (d.role === 'link-anchor') {
+                    var path = d.link.path;
+                    var l = path.getTotalLength();
 
-                    var horizontal = Math.abs(dy/dx) < 1;
-
-                    var t = (horizontal) ? 
-                        (d3.event.x - source.x)/dx :
-                        (d3.event.y - source.y)/dy;
-
-                    d.t = Math.max(Math.min(0.9, t), 0.1);
-
-                    // console.log(ddy, ddx, dr);
-
-                    // // get distance to source/target
-                    // var nsDx = d.link.source.x - d.x,
-                    //     nsDy = d.link.source.y - d.y,
-                    //     ntDx = d.link.target.x - d.x,
-                    //     ntDy = d.link.target.y - d.y,
-
-                    //     esDx = d.link.source.x - d3.event.x,
-                    //     esDy = d.link.source.y - d3.event.y,
-                    //     etDx = d.link.target.x - d3.event.x,
-                    //     etDy = d.link.target.y - d3.event.y;
-
-                    // var nodeDistanceToSource = nsDx*nsDx + nsDy*nsDy,
-                    //     nodeDistanceToTarget = ntDx*ntDx + ntDy*ntDy,
-                    //     dragDistanceToSource = esDx*esDx + esDy*esDy,
-                    //     dragDistanceToTarget = etDx*etDx + etDy*etDy;
-
-                    // var direction = 0;
-                    // if (dragDistanceToSource < nodeDistanceToSource) {
-                    //     direction = -0.01;
-                    // }
-                    // else if (dragDistanceToTarget < nodeDistanceToTarget) {
-                    //     direction = 0.01;
-                    // }
-                    // else {
-                    //     direction = dragDistanceToSource<dragDistanceToTarget ?
-                    //         -0.01 : 0.01;
-                    // }
-                    // d.t = Math.max(Math.min(d.t + direction, 0.9), 0.1);
+                    var min = Infinity;
+                    var tmin = 1;
+                    for (var i = 0.05; i < 1; i += 0.05) {
+                        var p = path.getPointAtLength(i*l);
+                        var dx = p.x - d.x,
+                            dy = p.y - d.y;
+                        var distSquared = dx*dx + dy*dy;
+                        if (distSquared < min) {
+                            min = distSquared;
+                            tmin = i;
+                        }
+                    }
+                    d.t = tmin;
                 }
             })
             .on('end', (d) => {
                 if (!d3.event.active) {
                     sim.alphaTarget(0);
                 }
-                if (d.role !== "link-anchor") {
+                d.isDragging = false;
+                if (d.role !== 'link-anchor') {
                     d.fx = d.fy = null;
                 }
             });
@@ -351,6 +349,7 @@ class GraphLayout {
             .data(this.data.links);
 
         link.enter().append('path')
+            .datum(function(d) { d.path = this; return d; })
             .attr('class','link')
             .attr('fill','none')
             .attr('stroke','rgba(0,0,0,0.8)')
@@ -375,41 +374,26 @@ class GraphLayout {
                 .clamp(true);
 
         function tick() {
+          var line = d3.line()
+            .x(d => d.x)
+            .y(d => d.y)
+            .curve(d3.curveCatmullRom);
+
+          link
+            .attr('d', d => d.cp ? line([d.source, d.cp, d.target]) 
+                            : line([d.source, d.target]) );
           node
             .datum(d => { 
-                if (d.role === "link-anchor") {
-                    // get position of link-anchor on line
-                    var target = d.link.target,
-                        source = d.link.source;
-
-                    var dx = target.x - source.x,
-                        dy = target.y - source.y,
-                        dr = Math.sqrt( dx * dx + dy * dy);
-
-                    d.fx = source.x + dx*d.t,
-                    d.fy = source.y + dy*d.t;
-
-                    // if (dr === 0) { 
-                    //     d.fx = target.x,
-                    //     d.fy = target.y;
-                    //     return d; 
-                    // }
-
-                    // var sin60 = Math.sqrt(3)/2;
-                    // var cx = source.x + dx * 0.5 - dy * sin60,
-                    //     cy = source.y + dy * 0.5 + dx * sin60;
-
-                    // var acos = Math.acos( (source.x - cx)/dr ),
-                    //     asin = Math.asin( (source.y - cy)/dr );
-
-                    // var theta = (asin < 0) ? -acos : acos;
-
-                    // d.fx = cx + dr*Math.cos(theta + Math.PI/3 * d.t),
-                    // d.fy = cy + dr*Math.sin(theta + Math.PI/3 * d.t);
-                }
-                else {
+                if (d.role !== 'link-anchor') {
                     d.x = clampX(d.x);
                     d.y = clampY(d.y);
+                }
+                else if (!d.isDragging) {
+                    var path = d.link.path;
+                    var l = path.getTotalLength();
+                    var p = path.getPointAtLength(d.t * l);
+                    d.fx = p.x;
+                    d.fy = p.y;
                 }
                 return d; 
             })
@@ -417,30 +401,13 @@ class GraphLayout {
                 return 'translate(' + d.x + ',' + d.y + ')';
             });
 
-          link
-            .attr('d', arrowPath);
-
-
-          function arrowPath(d,i) {
-            var target = d.target,
-                source = d.source;
-
-            var dx = target.x - source.x,
-                dy = target.y - source.y,
-                dr = Math.sqrt( dx * dx + dy * dy);
-
-            return  "M" + source.x + "," + source.y +
-                // "A" + dr*2 + "," + dr*2 + " 0 0,1 " +    // arc
-                "L"+                                    // line
-                target.x + "," + target.y;
-          }
         }
 
         this.simulation
             .nodes(this.data.anchors)
             .on('tick', tick);
 
-        // this.simulation.force('link').links(this.data.links);
+        this.simulation.force('link').links(this.data.links);
 
         if (this.simulation.alpha() < 0.1) {
             this.simulation.alpha(0.3).restart();
