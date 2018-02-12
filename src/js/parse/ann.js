@@ -1,5 +1,4 @@
-import Word from '../components/word.js';
-import Link from '../components/link.js';
+import TAG from '../tag.js';
 
 class BratParser {
   constructor() {
@@ -166,7 +165,7 @@ class BratParser {
     let clusters = [];
 
     // build words
-    let words = data.tokens.map((token, i) => new Word(token.word, i));
+    let words = data.tokens.map((token, i) => new TAG.Word(token.word, i));
     data.texts.forEach(tbm => {
     words[tbm.tokenId].setTag(tbm.label);
     words[tbm.tokenId].addEventId(tbm.id);
@@ -188,7 +187,7 @@ class BratParser {
           };
         });
 
-        let newLink = new Link(mention.id, trigger, args);
+        let newLink = new TAG.Link(mention.id, trigger, args);
         mentions[mention.id] = newLink;
         links.push(newLink);
         }
@@ -201,7 +200,7 @@ class BratParser {
           };
         });
 
-        let newLink = new Link(mention.id, null, args, mention.label);
+        let newLink = new TAG.Link(mention.id, null, args, mention.label);
         mentions[mention.id] = newLink;
         links.push(newLink);
         }

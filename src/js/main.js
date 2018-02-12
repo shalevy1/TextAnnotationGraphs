@@ -1,4 +1,5 @@
 import * as SVG from 'svg.js';
+import TAG from './tag.js';
 import Parser from './parse/parse.js';
 import TreeLayout from './treelayout.js';
 import * as ymljson from './ymljson.js';
@@ -39,11 +40,10 @@ const Main = (function() {
    */
   function init() {
     // setup
-    let body = document.body.getBoundingClientRect();
-    svg = new SVG.Doc('main')
-      .size(body.width, window.innerHeight - body.top - 10);
+    let tag = new TAG('main');
+    svg     = tag.svg;
     tooltip = new Tooltip('tooltip', svg);
-    parser  = new Parser();
+    parser  = new Parser(tag);
     rm      = new RowManager(svg);
     lm      = new LabelManager(svg);
     tm      = new Taxonomy('taxonomy');

@@ -1,6 +1,5 @@
 import * as d3 from 'd3';
-import Word from './components/word.js';
-import Link from './components/link.js';
+import TAG from './tag.js';
 
 module.exports = (function() {
 
@@ -15,15 +14,15 @@ module.exports = (function() {
         let data = {
             node,
             incoming,
-            name: node instanceof Word ? node.val : node.textStr,
-            type: node instanceof Word ? 'Word' : 'Link'
+            name: node instanceof TAG.Word ? node.val : node.textStr,
+            type: node instanceof TAG.Word ? 'Word' : 'Link'
         };
 
         if (depth < maxDepth) {
             let children = node.links
                 .filter(parent => {
                     // ignore "incoming" links
-                    if (parent !== source && parent instanceof Link) {
+                    if (parent !== source && parent instanceof TAG.Link) {
                         const i = parent.words.indexOf(node);
                         if (i < 0 || parent.arrowDirections[i] === -1) {
                             incoming.push(parent);
@@ -34,7 +33,7 @@ module.exports = (function() {
                 })
                 .map((parent) => addNode(parent, depth + 1, node));
 
-            if (node instanceof Link) {
+            if (node instanceof TAG.Link) {
                 let anchors = node.words
                     .map((word, i) => {
                         if (word !== source) {
@@ -151,10 +150,10 @@ module.exports = (function() {
                     };
                   });
 
-                if (node instanceof Word) {
+                if (node instanceof TAG.Word) {
                   args = links.filter(x => x.trigger === node);
                 }
-                else if (node instanceof Link) {
+                else if (node instanceof TAG.Link) {
                   args = node.arguments.map(x => x.anchor);
                 }
 
@@ -263,7 +262,7 @@ module.exports = (function() {
               .data(nodes, d => d.node);
 
             let edgeLabel = this.g.selectAll('.edgeLabel')
-              .data(links.filter(l => l.source.node instanceof Link), d => d.source.node);
+              .data(links.filter(l => l.source.node instanceof TAG.Link), d => d.source.node);
 
             let edgeSVG = this.g.selectAll('.edge')
               .data(links, d => d.source.node);
@@ -285,7 +284,7 @@ module.exports = (function() {
             edgeSVG.enter().append('path')
               .attr('class', 'edge')
               .attr('stroke', 'grey')
-              .attr('stroke-dasharray', d => d.source.node instanceof Word ? [2,2] : null)
+              .attr('stroke-dasharray', d => d.source.node instanceof TAG.Word ? [2,2] : null)
               .attr('stroke-width', '1px')
               .attr('fill','none')
             .merge(edgeSVG)

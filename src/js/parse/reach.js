@@ -1,6 +1,4 @@
-import Word from '../components/word.js';
-import WordCluster from '../components/wordcluster.js';
-import Link from '../components/link.js';
+import TAG from '../tag.js';
 
 class ReachParser {
   constructor() {
@@ -96,7 +94,7 @@ class ReachParser {
   buildWordsAndLinks(tokens, entities, triggers, events, relations, syntax) {
     // construct word objects and tags from tokens, entities, and triggers
     const words = tokens.map((token, i) => {
-      let w = new Word(token.text, i);
+      let w = new TAG.Word(token.text, i);
       w.setSyntaxTag(token.type);
       w.setSyntaxId(token.id);
       return w;
@@ -114,7 +112,7 @@ class ReachParser {
         for (let i = el.tokenIndex[0]; i <= el.tokenIndex[1]; ++i) {
           cluster.push(words[i]);
         }
-        const wordCluster = new WordCluster(cluster, el.type);
+        const wordCluster = new TAG.WordCluster(cluster, el.type);
         wordCluster.addEventId(el.id);
         clusters.push(wordCluster);
       }
@@ -147,7 +145,7 @@ class ReachParser {
       const args = evt.arguments.map(searchForEntity);
 
       // create link
-      const link = new Link(evt.id, trigger, args);
+      const link = new TAG.Link(evt.id, trigger, args);
 
       // push link to link array
       links.push(link);
@@ -156,7 +154,7 @@ class ReachParser {
     relations.forEach(rel => {
       const args = rel.arguments.map(searchForEntity);
       // create link
-      const link = new Link(rel.id, null, args, rel.type);
+      const link = new TAG.Link(rel.id, null, args, rel.type);
 
       // push link to link array
       links.push(link);
@@ -172,7 +170,7 @@ class ReachParser {
       });
 
       // create link
-      const link = new Link(syn.id, trigger, args, null, false);
+      const link = new TAG.Link(syn.id, trigger, args, null, false);
 
       // push link to link array
       links.push(link);
