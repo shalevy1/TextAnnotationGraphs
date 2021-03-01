@@ -69,7 +69,7 @@
     "morgan": "^1.9.1",
     "popper.js": "^1.14.4",
     "postcss-cli": "^6.0.1",
-    "prismjs": "^1.15.0",
+    "prismjs": "^1.23.0",
     "rimraf": "^2.6.3",
     "runjs": "^4.3.2",
     "sass": "^1.14.3",
